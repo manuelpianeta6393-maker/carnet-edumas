@@ -1,0 +1,17 @@
+{
+  "name": "Carnet EDUMAS",
+  "short_name": "Carnet EDUMAS",
+  "description": "Carnet virtual de funcionario de EDUMAS",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#04214D",
+  "theme_color": "#04214D",
+  "icons": [
+    { "src": "/assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

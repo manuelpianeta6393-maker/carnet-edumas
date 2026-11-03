@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function esAdmin() {
+      return request.auth != null
+        && request.auth.token.email == 'comunicaciones@edumas.gov.co';
+    }
+
+    match /funcionarios/{id} {
+      allow read, write: if esAdmin();
+    }
+
+    match /carnets/{id} {
+      allow get: if true;
+      allow list, write: if esAdmin();
+    }
+
+    match /verificacion/{id} {
+      allow get: if true;
+      allow list, write: if esAdmin();
+    }
+
+    match /registros/{id} {
+      allow read, delete: if esAdmin();
+      allow update: if false;
+      allow create: if request.resource.data.keys().hasOnly(['v', 'nombre', 'tipo', 'cargo', 'resultado', 'fecha', 'lat', 'lng', 'precision', 'lugar', 'ubicacion', 'dispositivo'])
+        && request.resource.data.v is string
+        && exists(/databases/$(database)/documents/verificacion/$(request.resource.data.v))
+        && request.resource.data.nombre == get(/databases/$(database)/documents/verificacion/$(request.resource.data.v)).data.nombre
+        && request.resource.data.fecha == request.time
+        && request.resource.data.resultado in ['activo', 'vencido', 'inactivo']
+        && request.resource.data.ubicacion in ['si', 'denegada', 'no_disponible']
+        && (!('lugar' in request.resource.data) || (request.resource.data.lugar is string && request.resource.data.lugar.size() <= 200))
+        && (!('dispositivo' in request.resource.data) || (request.resource.data.dispositivo is string && request.resource.data.dispositivo.size() <= 60));
+    }
+
+    match /ajustes/{id} {
+      allow get: if true;
+      allow list, write: if esAdmin();
+    }
+  }
+}

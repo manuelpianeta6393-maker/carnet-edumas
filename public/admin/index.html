@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Carnets EDUMAS · Panel</title>
+<link rel="icon" href="/assets/icon-192.png">
+<link rel="stylesheet" href="/assets/base.css">
+<style>
+:root{
+  --bg:#F2F5FA;--surface:#FFFFFF;--sunken:#E6ECF5;--ink:#0B1730;--muted:#55627A;--line:#D3DBE8;
+  --pri:#0C3472;--pri-soft:#DFE8F6;--on-pri:#FFFFFF;--sky:#0A78A8;--sky-soft:#DDF1FA;
+  --ok:#1F6F3A;--ok-soft:#DDF0E2;--warn:#8A5200;--warn-soft:#FBEBCF;--bad:#B3261E;--bad-soft:#FADFDC;
+  --shadow:0 1px 2px rgba(11,23,48,.06),0 8px 24px rgba(11,23,48,.1);
+  --display:Montserrat,"Arial Black",Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0A1222;--surface:#121C31;--sunken:#1A2742;--ink:#E8EEF8;--muted:#9CABC4;--line:#27344F;
+  --pri:#8DB4F2;--pri-soft:#1B2B4B;--on-pri:#0A1222;--sky:#62C7EE;--sky-soft:#12303E;
+  --ok:#7FD39A;--ok-soft:#173222;--warn:#F0B95C;--warn-soft:#3A2C12;--bad:#FF8A80;--bad-soft:#3F1D1A;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);color-scheme:dark}}
+body{background:var(--bg);color:var(--ink);padding-bottom:env(safe-area-inset-bottom,0px)}
+:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+.top{background:#04214D;color:#FFFFFF;padding-top:env(safe-area-inset-top,0px)}
+.top-in{max-width:880px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 200px}
+.brand img{width:44px;height:44px;object-fit:contain;background:#FFFFFF;border-radius:10px;padding:4px;flex:none}
+.brand b{display:block;font-family:var(--display);font-weight:800;font-size:1.2rem;line-height:1.1;overflow-wrap:anywhere}
+.brand span{font-size:.8rem;color:#B9CBE8}
+.who{display:flex;align-items:center;gap:8px;font-size:.8rem;color:#B9CBE8;min-width:0}
+.who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:44vw}
+.who button{border:1px solid #5673A6;background:transparent;color:#FFFFFF;border-radius:999px;padding:5px 12px;font-weight:600;cursor:pointer}
+.tabs{display:flex;gap:6px;max-width:880px;margin:0 auto;padding:0 16px 10px}
+.tab{border:0;background:transparent;padding:9px 14px;border-radius:10px;font-weight:600;color:#B9CBE8;cursor:pointer;display:flex;align-items:center;gap:8px}
+.tab svg{width:20px;height:20px;flex:none}
+.tab[aria-current="page"]{background:#FFFFFF;color:#04214D}
+main{max-width:880px;margin:0 auto;padding-inline:16px;padding-block:20px 48px}
+h1{font-family:var(--display);font-weight:800;font-size:1.5rem;line-height:1.15;margin:0;text-wrap:balance}
+h2{font-family:var(--display);font-weight:800;font-size:1rem;margin:0}
+.sub{color:var(--muted);margin:4px 0 0;max-width:62ch}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:11px 16px;border-radius:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;text-align:center;text-decoration:none}
+.btn.pri{background:var(--pri);border-color:var(--pri);color:var(--on-pri)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted);padding-inline:8px}
+.btn:disabled{opacity:.55;cursor:default}
+.gate{max-width:460px;margin:24px auto;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow)}
+.gate p{margin:0;color:var(--muted)}
+.gate ol{margin:0;padding-left:20px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+.code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--sunken);border-radius:10px;padding:10px 12px;overflow-wrap:anywhere;user-select:all;color:var(--ink)}
+.err{color:var(--bad);font-weight:600;font-size:.9rem}
+.info{color:var(--ok);font-weight:600;font-size:.9rem}
+.tools{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+.search{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);min-height:46px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:.88rem;font-weight:600;color:var(--muted);cursor:pointer;font-variant-numeric:tabular-nums}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.row{display:grid;grid-template-columns:48px minmax(0,1fr);gap:14px;align-items:start;padding:12px 14px;border:0;border-bottom:1px solid var(--line);background:transparent;text-align:left;cursor:pointer;width:100%;color:inherit}
+.row:last-child{border-bottom:0}
+.row:hover{background:var(--sunken)}
+.thumb{width:48px;height:52px;border-radius:8px;object-fit:cover;background:var(--pri-soft);color:var(--pri);display:grid;place-items:center;font-family:var(--display);font-weight:800}
+.row-b{display:flex;flex-direction:column;gap:2px;min-width:0}
+.row-n{font-weight:700;overflow-wrap:anywhere}
+.row-m{font-size:.85rem;color:var(--muted);overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.row-s{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.pill{font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.pill.pr{background:var(--sky-soft);color:var(--sky)}
+.pill.ct{background:var(--pri-soft);color:var(--pri)}
+.pill.fp{background:var(--ok-soft);color:var(--ok)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad,.pill.off{background:var(--bad-soft);color:var(--bad)}
+.pill.nt{background:var(--sunken);color:var(--muted)}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:16px;padding:32px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px}
+.empty p{margin:0;color:var(--muted);max-width:44ch}
+form{display:flex;flex-direction:column;gap:22px}
+fieldset{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:14px;min-width:0}
+legend{font-family:var(--display);font-weight:800;font-size:1rem;padding:0;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:14px}
+.fld{display:flex;flex-direction:column;gap:6px;min-width:0}
+.fld label,.lbl{font-size:.82rem;font-weight:600;color:var(--muted)}
+.fld input,.fld select,.fld textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);min-height:46px}
+.fld textarea{min-height:96px;resize:vertical}
+.fld .hint{font-size:.78rem;color:var(--muted)}
+.fld.bad input,.fld.bad select{border-color:var(--bad)}
+.fld .msg{font-size:.8rem;color:var(--bad)}
+.seg{position:relative;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.seg label b{font-family:var(--display);font-weight:800}
+.seg label span{font-size:.8rem;color:var(--muted)}
+.seg input:checked+label{border-color:var(--pri);background:var(--pri-soft)}
+.seg input:focus-visible+label{outline:3px solid var(--sky);outline-offset:2px}
+.photo{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.photo-box{width:98px;height:105px;border-radius:12px;background:var(--sunken);border:1px dashed var(--line);display:grid;place-items:center;overflow:hidden;color:var(--muted);font-size:.75rem;text-align:center;flex:none}
+.photo-box img{width:100%;height:100%;object-fit:cover}
+.photo-act{position:relative;display:flex;flex-direction:column;gap:8px;align-items:flex-start;min-width:0;flex:1 1 180px}
+.file{position:absolute;width:1px;height:1px;opacity:0}
+.bar{display:flex;gap:10px;flex-wrap:wrap}
+.bar .btn{flex:1 1 150px}
+.back{margin:0 0 10px -8px}
+.det-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:18px;margin:20px 0;justify-items:center}
+.cards figure{margin:0;display:flex;flex-direction:column;gap:8px;align-items:center;width:100%;max-width:320px}
+.cards img{width:100%;aspect-ratio:1080/1500;border-radius:16px;box-shadow:var(--shadow);background:#FFFFFF;display:block}
+.cards figcaption{font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;margin-bottom:14px}
+.panel p{margin:0;color:var(--muted);font-size:.9rem}
+.copy{display:flex;gap:8px;flex-wrap:wrap}
+.qrbox{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.qrbox canvas{width:180px;height:180px;border-radius:12px;border:1px solid var(--line);background:#FFFFFF;flex:none}
+.qrside{display:flex;flex-direction:column;gap:10px;flex:1 1 180px;min-width:0}
+.copy input{flex:1 1 200px;min-width:0;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--sunken);min-height:46px;font-size:.85rem}
+.confirm{background:var(--bad-soft);color:var(--bad);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;font-weight:600}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:999px;font-weight:600;font-size:.9rem;box-shadow:var(--shadow);max-width:calc(100% - 32px);text-align:center;z-index:30}
+.tabs{overflow-x:auto}
+@media (max-width:560px){.tab{flex:1 0 auto;justify-content:center;padding-inline:8px;font-size:.85rem;gap:5px}.tab svg{width:17px;height:17px}}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.stat b{display:block;font-family:var(--display);font-weight:800;font-size:1.5rem;font-variant-numeric:tabular-nums}
+.stat span{font-size:.8rem;color:var(--muted)}
+.rg{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.rg:last-child{border-bottom:0}
+.rg-n{font-weight:700;overflow-wrap:anywhere}
+.rg-m{font-size:.85rem;color:var(--muted);overflow-wrap:anywhere}
+.rg-t{text-align:right;font-variant-numeric:tabular-nums;font-size:.85rem;color:var(--muted);white-space:nowrap}
+.rg a{color:var(--sky);font-weight:600}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.filters select{padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);min-height:42px}
+.hist{display:flex;flex-direction:column;gap:6px;font-size:.88rem}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <img src="/assets/logo-e.png" alt="">
+      <div><b id="brand-name">EDUMAS</b><span>Panel de carnetización</span></div>
+    </div>
+    <div class="who" id="who" hidden><span id="who-mail"></span><button type="button" id="salir">Salir</button></div>
+  </div>
+  <nav class="tabs" id="tabs" aria-label="Secciones" hidden>
+    <button class="tab" type="button" data-go="lista" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="11" r="2.2"/><path d="M5.5 16.5c.8-1.8 2-2.5 3.5-2.5s2.7.7 3.5 2.5M15 10h3.5M15 14h3.5"/></svg>Funcionarios</button>
+    <button class="tab" type="button" data-go="form"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Nuevo</button>
+    <button class="tab" type="button" data-go="registros"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Registros</button>
+    <button class="tab" type="button" data-go="ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>Entidad</button>
+  </nav>
+</header>
+
+<main>
+  <section class="gate" id="g-load"><h1>Cargando…</h1><p>Conectando con la base de datos.</p></section>
+
+  <section class="gate" id="g-config" hidden>
+    <h1>Falta conectar Firebase</h1>
+    <p>Abre el archivo <b>public/assets/config.js</b>, pega el <b>apiKey</b> y el <b>projectId</b> de tu proyecto de Firebase y vuelve a publicar.</p>
+  </section>
+
+  <form class="gate" id="g-login" hidden novalidate>
+    <h1>Entrar al panel</h1>
+    <p>Solo la cuenta de administrador puede entrar.</p>
+    <div class="fld"><label for="l-mail">Correo</label><input id="l-mail" type="email" autocomplete="username" inputmode="email"></div>
+    <div class="fld"><label for="l-pass">Contraseña</label><input id="l-pass" type="password" autocomplete="current-password"></div>
+    <div class="err" id="l-err" hidden></div>
+    <div class="info" id="l-info" hidden></div>
+    <button class="btn pri" type="submit" id="l-btn">Entrar</button>
+    <button class="btn ghost" type="button" id="l-reset">Olvidé mi contraseña</button>
+  </form>
+
+  <section class="gate" id="g-error" hidden>
+    <h1>No se pudo cargar</h1>
+    <p id="g-error-t"></p>
+    <button class="btn pri" type="button" id="g-retry">Reintentar</button>
+  </section>
+
+  <div id="app" hidden>
+    <section id="v-lista">
+      <div class="head">
+        <div><h1>Funcionarios</h1><p class="sub">Practicantes y contratistas registrados. Toca uno para ver su carnet y enviarle su enlace.</p></div>
+        <button class="btn pri" type="button" data-go="form">Registrar funcionario</button>
+      </div>
+      <div class="tools" id="tools" hidden>
+        <input class="search" id="q" type="search" placeholder="Buscar nombre, documento o área" aria-label="Buscar funcionario">
+        <div class="chips" id="chips"></div>
+      </div>
+      <div class="list" id="list" hidden></div>
+      <div class="empty" id="empty">
+        <h2 id="empty-t">Aún no hay funcionarios</h2>
+        <p id="empty-p">Registra un practicante o un contratista y envíale el enlace para que instale su carnet.</p>
+        <button class="btn pri" type="button" data-go="form" id="empty-btn">Registrar el primero</button>
+      </div>
+    </section>
+
+    <section id="v-form" hidden>
+      <button class="btn ghost back" type="button" data-go="lista">‹ Funcionarios</button>
+      <div class="head"><div><h1 id="form-t">Registrar funcionario</h1><p class="sub">Los campos con * son obligatorios.</p></div></div>
+      <form id="form" novalidate>
+        <fieldset>
+          <legend>Tipo de vinculación</legend>
+          <div class="seg">
+            <input type="radio" name="tipo" id="tipo-pr" value="practicante" checked><label for="tipo-pr"><b>Practicante</b><span>Estudiante en práctica</span></label>
+            <input type="radio" name="tipo" id="tipo-ct" value="contratista"><label for="tipo-ct"><b>Contratista</b><span>Prestación de servicios</span></label>
+            <input type="radio" name="tipo" id="tipo-fp" value="planta"><label for="tipo-fp"><b>Funcionario de planta</b><span>Personal de nómina</span></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Fotografía</legend>
+          <div class="photo">
+            <div class="photo-box" id="photo-box">Sin foto</div>
+            <div class="photo-act">
+              <input class="file" type="file" id="f-foto" accept="image/*">
+              <label class="btn" for="f-foto" id="foto-lbl">Tomar o elegir foto</label>
+              <button class="btn ghost" type="button" id="foto-quitar" hidden>Quitar foto</button>
+              <span class="lbl">Fondo blanco, de frente y hasta el pecho. Se recorta sola.</span>
+            </div>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Datos personales</legend>
+          <div class="grid">
+            <div class="fld" data-f="nombres"><label for="f-nombres">Nombres *</label><input id="f-nombres" autocomplete="off" autocapitalize="words"></div>
+            <div class="fld" data-f="apellidos"><label for="f-apellidos">Apellidos *</label><input id="f-apellidos" autocomplete="off" autocapitalize="words"></div>
+            <div class="fld"><label for="f-nombrecarnet">Nombre como sale en el carnet</label><input id="f-nombrecarnet" autocomplete="off" autocapitalize="words"><span class="hint">Primer nombre y primer apellido; puedes cambiarlo.</span></div>
+            <div class="fld"><label for="f-tipodoc">Tipo de documento</label><select id="f-tipodoc"><option value="C.C.">Cédula de ciudadanía</option><option value="T.I.">Tarjeta de identidad</option><option value="C.E.">Cédula de extranjería</option><option value="PPT">Permiso por protección temporal</option><option value="PAS.">Pasaporte</option></select></div>
+            <div class="fld" data-f="numDoc"><label for="f-numdoc">Número de documento *</label><input id="f-numdoc" inputmode="numeric" autocomplete="off"><span class="hint">Con este número el funcionario activa su carnet.</span></div>
+            <div class="fld"><label for="f-rh">Grupo sanguíneo (RH)</label><select id="f-rh"><option value="">No mostrar</option><option>O+</option><option>O-</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option></select></div>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Vinculación</legend>
+          <div class="grid">
+            <div class="fld" data-f="cargo"><label for="f-cargo" id="f-cargo-l">Cargo o rol</label><input id="f-cargo" autocomplete="off"><span class="hint" id="f-cargo-h" hidden>Sale en la franja verde del carnet. Ej.: Subgerente Ambiental.</span></div>
+            <div class="fld" data-f="dependencia"><label for="f-dependencia">Área *</label><select id="f-dependencia"></select></div>
+            <div class="fld" data-only="practicante"><label for="f-institucion">Institución educativa</label><input id="f-institucion" autocomplete="off"></div>
+            <div class="fld" data-only="practicante"><label for="f-programa">Programa académico</label><input id="f-programa" autocomplete="off"></div>
+            <div class="fld" data-only="contratista"><label for="f-contrato">Número de contrato</label><input id="f-contrato" autocomplete="off"></div>
+            <div class="fld" data-only="contratista"><label for="f-objeto">Objeto del contrato (resumen)</label><input id="f-objeto" autocomplete="off" maxlength="120"></div>
+            <div class="fld"><label for="f-supervisor">Supervisor o jefe inmediato</label><input id="f-supervisor" autocomplete="off"></div>
+            <div class="fld"><label for="f-inicio">Fecha de inicio</label><input id="f-inicio" type="date"></div>
+            <div class="fld" data-f="fechaFin"><label for="f-fin" id="f-fin-l">Válido hasta *</label><input id="f-fin" type="date"><span class="hint" id="f-fin-h">Después de esta fecha el carnet aparece como vencido.</span></div>
+            <div class="fld" data-f="codigo"><label for="f-codigo">Código del carnet</label><input id="f-codigo" autocomplete="off"><span class="hint">Se asigna solo; puedes cambiarlo.</span></div>
+          </div>
+        </fieldset>
+        <div class="bar">
+          <button class="btn pri" type="submit" id="form-save">Guardar y ver carnet</button>
+          <button class="btn" type="button" data-go="lista">Cancelar</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="v-detalle" hidden>
+      <button class="btn ghost back" type="button" data-go="lista">‹ Funcionarios</button>
+      <h1 id="det-n"></h1>
+      <div class="det-pills" id="det-pills"></div>
+      <div class="cards">
+        <figure><img id="img-front" alt="Frente del carnet"><figcaption>Frente</figcaption></figure>
+        <figure><img id="img-back" alt="Reverso del carnet"><figcaption>Reverso</figcaption></figure>
+      </div>
+      <div class="panel">
+        <h2>App del funcionario</h2>
+        <p>Puede abrir su carnet de dos formas. En las dos escribe su número de documento y luego lo instala en el celular.</p>
+        <span class="lbl">Opción 1 · Enlace personal</span>
+        <div class="copy"><input id="link-url" readonly aria-label="Enlace personal"><button class="btn" type="button" id="link-copy">Copiar</button></div>
+        <span class="lbl">Opción 2 · Código QR para escanear con la cámara</span>
+        <div class="qrbox"><canvas id="qr-install" width="232" height="232" aria-label="Código QR del enlace personal"></canvas><div class="qrside"><p>Muéstraselo en pantalla o descárgalo para enviarlo o imprimirlo.</p><button class="btn" type="button" id="qr-dl">Descargar QR</button></div></div>
+        <div class="bar">
+          <a class="btn pri" id="link-wa" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+          <a class="btn" id="link-ver" target="_blank" rel="noopener">Ver lo que muestra el QR</a>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Últimas presentaciones</h2>
+        <div class="hist" id="det-hist"><p>Cargando…</p></div>
+      </div>
+      <div class="panel">
+        <h2>Descargar</h2>
+        <div class="bar">
+          <button class="btn" type="button" data-dl="frente">Imagen del frente</button>
+          <button class="btn" type="button" data-dl="reverso">Imagen del reverso</button>
+          <button class="btn" type="button" data-dl="tarjeta">PDF con ambas caras</button>
+          <button class="btn" type="button" data-dl="carta">PDF para imprimir (hoja carta)</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Administrar</h2>
+        <div class="bar">
+          <button class="btn" type="button" id="det-edit">Editar datos</button>
+          <button class="btn" type="button" id="det-toggle">Desactivar carnet</button>
+          <button class="btn" type="button" id="det-link">Generar enlace y QR nuevos</button>
+          <button class="btn danger" type="button" id="det-del">Eliminar</button>
+        </div>
+        <div class="confirm" id="confirm" hidden>
+          <span id="confirm-t"></span>
+          <div class="bar"><button class="btn danger" type="button" id="confirm-si">Sí, continuar</button><button class="btn" type="button" id="confirm-no">Cancelar</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="v-registros" hidden>
+      <div class="head">
+        <div><h1>Registro de presentaciones</h1><p class="sub">Cada vez que alguien escanea el QR de un carnet queda registrado el funcionario, la hora y el lugar.</p></div>
+        <div class="bar"><button class="btn" type="button" id="rg-reload">Actualizar</button><button class="btn pri" type="button" id="rg-csv">Descargar Excel (CSV)</button></div>
+      </div>
+      <div class="tools">
+        <input class="search" id="rg-q" type="search" placeholder="Buscar funcionario o lugar" aria-label="Buscar en el registro">
+        <div class="filters">
+          <select id="rg-per" aria-label="Periodo"><option value="hoy">Hoy</option><option value="7" selected>Últimos 7 días</option><option value="30">Últimos 30 días</option><option value="todo">Todo</option></select>
+          <select id="rg-res" aria-label="Resultado"><option value="">Todos los resultados</option><option value="activo">Activos</option><option value="vencido">Vencidos</option><option value="inactivo">Inactivos</option></select>
+        </div>
+      </div>
+      <div class="stats" id="rg-stats"></div>
+      <div class="list" id="rg-list" hidden></div>
+      <div class="empty" id="rg-empty"><h2 id="rg-empty-t">Cargando registros…</h2><p id="rg-empty-p">Aquí aparecen las presentaciones cuando alguien escanea el QR de un carnet.</p></div>
+    </section>
+
+    <section id="v-ajustes" hidden>
+      <div class="head"><div><h1>Datos de la entidad</h1><p class="sub">Aparecen en el reverso de todos los carnets y en la página de verificación.</p></div></div>
+      <form id="cfg" novalidate>
+        <fieldset>
+          <legend>Identificación</legend>
+          <div class="grid">
+            <div class="fld" data-f="c-nombre"><label for="c-nombre">Nombre o sigla *</label><input id="c-nombre" autocomplete="off"></div>
+            <div class="fld"><label for="c-subtitulo">Lema</label><input id="c-subtitulo" autocomplete="off"></div>
+            <div class="fld"><label for="c-nit">NIT</label><input id="c-nit" autocomplete="off"></div>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Contacto</legend>
+          <div class="grid">
+            <div class="fld"><label for="c-telefono">Teléfono</label><input id="c-telefono" autocomplete="off" inputmode="tel"></div>
+            <div class="fld"><label for="c-direccion">Dirección</label><input id="c-direccion" autocomplete="off"></div>
+            <div class="fld"><label for="c-ciudad">Barrio y ciudad</label><input id="c-ciudad" autocomplete="off"></div>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Texto del reverso</legend>
+          <div class="fld"><label for="c-legal">Texto de verificación</label><textarea id="c-legal" maxlength="200"></textarea><span class="hint">Vacío: se usa el texto oficial. Encierra entre *asteriscos* lo que va en negrita.</span></div>
+        </fieldset>
+        <div class="bar"><button class="btn pri" type="submit" id="cfg-save">Guardar datos de la entidad</button></div>
+      </form>
+    </section>
+  </div>
+</main>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="/assets/config.js"></script>
+<script src="/assets/api.js"></script>
+<script src="/assets/qrcode.js"></script>
+<script src="/assets/jspdf.umd.min.js"></script>
+<script src="/assets/draw.js"></script>
+<script src="/assets/admin.js"></script>
+</body>
+</html>
