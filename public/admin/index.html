@@ -96,6 +96,13 @@ legend{font-family:var(--display);font-weight:800;font-size:1rem;padding:0;margi
 .photo{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 .photo-box{width:98px;height:105px;border-radius:12px;background:var(--sunken);border:1px dashed var(--line);display:grid;place-items:center;overflow:hidden;color:var(--muted);font-size:.75rem;text-align:center;flex:none}
 .photo-box img{width:100%;height:100%;object-fit:cover}
+.photo-box.busy{opacity:.55}
+.chk{display:flex;align-items:center;gap:8px;font-size:.9rem;font-weight:600;cursor:pointer;min-height:32px}
+.chk input{width:20px;height:20px;accent-color:#0C3472;margin:0}
+.fnota{font-size:.82rem;color:var(--muted)}
+.fnota[data-k="ok"]{color:var(--ok)}
+.fnota[data-k="bad"]{color:var(--bad)}
+.chk[hidden],.fnota[hidden]{display:none}
 .photo-act{position:relative;display:flex;flex-direction:column;gap:8px;align-items:flex-start;min-width:0;flex:1 1 180px}
 .file{position:absolute;width:1px;height:1px;opacity:0}
 .bar{display:flex;gap:10px;flex-wrap:wrap}
@@ -212,7 +219,9 @@ legend{font-family:var(--display);font-weight:800;font-size:1rem;padding:0;margi
               <input class="file" type="file" id="f-foto" accept="image/*">
               <label class="btn" for="f-foto" id="foto-lbl">Tomar o elegir foto</label>
               <button class="btn ghost" type="button" id="foto-quitar" hidden>Quitar foto</button>
-              <span class="lbl">Fondo blanco, de frente y hasta el pecho. Se recorta sola.</span>
+              <span class="lbl">De frente y hasta el pecho. Se recorta sola.</span>
+              <label class="chk" id="fondo-row" hidden><input type="checkbox" id="f-fondo" checked> Poner fondo blanco automáticamente</label>
+              <span class="fnota" id="fondo-nota" hidden></span>
             </div>
           </div>
         </fieldset>
@@ -349,6 +358,7 @@ legend{font-family:var(--display);font-weight:800;font-size:1rem;padding:0;margi
 <script src="/assets/qrcode.js"></script>
 <script src="/assets/jspdf.umd.min.js"></script>
 <script src="/assets/draw.js"></script>
+<script src="/assets/fondo.js"></script>
 <script src="/assets/admin.js"></script>
 </body>
 </html>

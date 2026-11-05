@@ -3,7 +3,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function esAdmin() {
       return request.auth != null
-        && request.auth.token.email == 'comunicaciones@edumas.gov.co';
+        && request.auth.token.email in ['comunicaciones@edumas.gov.co', 'prensa@edumas.gov.co'];
     }
 
     match /funcionarios/{id} {

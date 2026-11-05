@@ -40,6 +40,8 @@
   const SK = "carnets.sesion";
   const configured = !!C.apiKey && !!C.projectId && !/PEGA_AQUI/.test(C.apiKey + C.projectId);
   const adminEmail = String(C.adminEmail || "").trim().toLowerCase();
+  const adminEmails = [adminEmail].concat(C.adminEmails || []).map(e => String(e || "").trim().toLowerCase()).filter((e, i, a) => e && a.indexOf(e) === i);
+  const isAdmin = e => adminEmails.indexOf(String(e || "").trim().toLowerCase()) >= 0;
   let ses = null;
   let refreshing = null;
 
@@ -229,7 +231,7 @@
   function carnetId(token, numDoc) { return sha(token + ":" + normDoc(numDoc)); }
 
   window.Api = {
-    configured, adminEmail,
+    configured, adminEmail, adminEmails, isAdmin,
     session: () => ses,
     signIn, signOut, resetPassword, get, list, commit, addPublic, query, rnd, sha, normDoc, carnetId
   };

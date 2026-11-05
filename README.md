@@ -14,6 +14,7 @@ Desarrollado por el Ing. Manuel Pianeta.
 | App del funcionario | PWA con service worker y caché local |
 | Dibujo del carnet | Canvas, plantillas JPG, QR con `qrcode-generator`, PDF con `jsPDF` |
 | Geocodificación | Nominatim (OpenStreetMap) |
+| Fondo blanco de la foto | MediaPipe Selfie Segmentation (Apache 2.0), ejecutado en el navegador del administrador |
 
 No hay backend propio ni Cloud Functions. Toda la seguridad de datos depende de `firestore.rules`.
 
@@ -46,7 +47,7 @@ public/
 | `registros/{id}` | Presentaciones (QR escaneado, hora, ubicación) | Creación pública validada; lectura y borrado solo administrador; no se puede editar |
 | `ajustes/entidad` | Datos de la entidad | Lectura pública; escritura solo administrador |
 
-El administrador se identifica por el correo del token de Firebase Auth (`request.auth.token.email`).
+Los administradores se identifican por el correo del token de Firebase Auth (`request.auth.token.email`), contra la lista de `firestore.rules` y `config.js`.
 
 ## Flujos
 

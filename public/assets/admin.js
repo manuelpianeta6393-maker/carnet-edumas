@@ -5,7 +5,7 @@
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const LIST = ["tipo", "nombres", "apellidos", "nombreCarnet", "tipoDoc", "numDoc", "cargo", "dependencia", "fechaInicio", "fechaFin", "codigo", "activo", "thumb", "token", "vtoken", "carnetId"];
   const GATES = ["load", "config", "login", "error"];
-  const S = { people: [], cfg: Object.assign({}, C.CFG0), view: "lista", filter: "todos", q: "", sel: null, editId: null, foto: "", thumb: "", cards: null, token: 0, regs: null, regsAt: 0 };
+  const S = { people: [], cfg: Object.assign({}, C.CFG0), view: "lista", filter: "todos", q: "", sel: null, editId: null, foto: "", thumb: "", cards: null, token: 0, regs: null, regsAt: 0, fotoBase: null, fondoJob: 0 };
   let confirmFn = null, toastT = 0;
 
   function toast(m) {
@@ -149,7 +149,7 @@
     gate("load");
     try {
       const s = api.session();
-      if (String(s.email || "").toLowerCase() !== api.adminEmail) {
+      if (!api.isAdmin(s.email)) {
         toLogin("Esta cuenta no tiene permiso para administrar.");
         return;
       }
@@ -191,8 +191,8 @@
     er.hidden = true;
     msg("#l-info", "");
     const mail = $("#l-mail").value.trim();
-    if (mail.toLowerCase() !== api.adminEmail) {
-      er.textContent = "Solo la cuenta " + api.adminEmail + " puede administrar los carnets.";
+    if (!api.isAdmin(mail)) {
+      er.textContent = "Este correo no tiene permiso para administrar los carnets.";
       er.hidden = false;
       return;
     }
@@ -200,6 +200,7 @@
     try {
       await api.signIn(mail, $("#l-pass").value);
       $("#l-pass").value = "";
+      try { localStorage.setItem("carnets.ultimo", mail.toLowerCase()); } catch (x) {}
       await enter();
     } catch (e) {
       er.textContent = loginError(e);
@@ -310,6 +311,7 @@
   }
 
   function setFoto(src, thumb) {
+    if (!src) { S.fotoBase = null; S.fondoJob++; fondoNota(""); $("#fondo-row").hidden = true; }
     S.foto = src || "";
     S.thumb = src ? thumb || "" : "";
     const b = $("#photo-box");
@@ -321,6 +323,7 @@
       b.appendChild(i);
     } else b.textContent = "Sin foto";
     $("#foto-quitar").hidden = !S.foto;
+    if (S.foto) $("#fondo-row").hidden = false;
     $("#foto-lbl").textContent = S.foto ? "Cambiar foto" : "Tomar o elegir foto";
   }
 
@@ -375,6 +378,10 @@
     if (p) c.dataset.touched = "1";
     else delete c.dataset.touched;
     $("#f-foto").value = "";
+    S.fotoBase = null;
+    S.fondoJob++;
+    fondoNota("");
+    $("#f-fondo").checked = !(v.foto);
     setFoto(v.foto || "", v.thumb || "");
     setTipoFields();
     show("form");
@@ -441,6 +448,47 @@
     });
   }
 
+  function fotoDe(c) {
+    const t = document.createElement("canvas");
+    t.width = 96;
+    t.height = 104;
+    t.getContext("2d").drawImage(c, 0, 0, 96, 104);
+    return [c.toDataURL("image/jpeg", 0.82), t.toDataURL("image/jpeg", 0.7)];
+  }
+
+  function fondoNota(t, k) {
+    const n = $("#fondo-nota");
+    n.textContent = t || "";
+    n.dataset.k = k || "";
+    n.hidden = !t;
+  }
+
+  async function aplicarFondo() {
+    const base = S.fotoBase;
+    if (!base) return;
+    const job = ++S.fondoJob;
+    if (!$("#f-fondo").checked) {
+      const f = fotoDe(base);
+      setFoto(f[0], f[1]);
+      fondoNota("");
+      return;
+    }
+    if (!window.FondoBlanco) { fondoNota("No se pudo cargar el recorte de fondo. Se usa la foto original.", "bad"); return; }
+    fondoNota("Poniendo fondo blanco…", "load");
+    $("#photo-box").classList.add("busy");
+    try {
+      const out = await window.FondoBlanco.aplicar(base);
+      if (job !== S.fondoJob) return;
+      const f = fotoDe(out);
+      setFoto(f[0], f[1]);
+      fondoNota("Fondo blanco aplicado. Revisa que el borde se vea bien; si no, desmarca la casilla.", "ok");
+    } catch (e) {
+      if (job !== S.fondoJob) return;
+      fondoNota((e && /persona/.test(e.message) ? "No se encontró una persona en la foto." : "No se pudo quitar el fondo.") + " Se usa la foto original.", "bad");
+    }
+    $("#photo-box").classList.remove("busy");
+  }
+
   async function pickFoto(ev) {
     const f = ev.target.files && ev.target.files[0];
     if (!f) return;
@@ -457,12 +505,25 @@
       x.fillStyle = "#FFFFFF";
       x.fillRect(0, 0, tw, th);
       x.drawImage(img, sx, sy, sw, sh, 0, 0, tw, th);
-      const t = document.createElement("canvas");
-      t.width = 96;
-      t.height = 104;
-      t.getContext("2d").drawImage(c, 0, 0, 96, 104);
-      setFoto(c.toDataURL("image/jpeg", 0.82), t.toDataURL("image/jpeg", 0.7));
+      S.fotoBase = c;
+      const o = fotoDe(c);
+      setFoto(o[0], o[1]);
+      $("#fondo-row").hidden = false;
+      await aplicarFondo();
     } catch (e) { toast("No se pudo leer la imagen. Prueba con otra foto."); }
+  }
+
+  async function fondoExistente() {
+    if (S.fotoBase || !S.foto) return aplicarFondo();
+    try {
+      const img = await C.loadImg(S.foto);
+      const c = document.createElement("canvas");
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
+      c.getContext("2d").drawImage(img, 0, 0);
+      S.fotoBase = c;
+    } catch (e) { return; }
+    return aplicarFondo();
   }
 
   function fillCfg() {
@@ -837,8 +898,10 @@
     $("#l-reset").addEventListener("click", async () => {
       msg("#l-err", "");
       try {
-        await api.resetPassword(api.adminEmail);
-        msg("#l-info", "Te enviamos un correo a " + api.adminEmail + " para cambiar la contraseña.");
+        const mail = $("#l-mail").value.trim().toLowerCase();
+        if (!api.isAdmin(mail)) { msg("#l-err", "Escribe primero el correo de administrador."); return; }
+        await api.resetPassword(mail);
+        msg("#l-info", "Te enviamos un correo a " + mail + " para cambiar la contraseña.");
       } catch (e) {
         msg("#l-err", e.offline ? "Sin conexión a internet." : "No se pudo enviar el correo. Intenta de nuevo.");
       }
@@ -862,6 +925,8 @@
     $("#f-nombres").addEventListener("input", autoName);
     $("#f-apellidos").addEventListener("input", autoName);
     $("#f-foto").addEventListener("change", pickFoto);
+    $("#f-fondo").addEventListener("change", fondoExistente);
+    $("#f-foto").addEventListener("click", () => { if (window.FondoBlanco && $("#f-fondo").checked) window.FondoBlanco.precargar(); });
     $("#foto-quitar").addEventListener("click", () => { $("#f-foto").value = ""; setFoto("", ""); });
     $("#link-copy").addEventListener("click", () => copyText($("#link-url").value, $("#link-url")));
     $("#qr-dl").addEventListener("click", downloadInstallQR);
@@ -904,7 +969,7 @@
   }
 
   bind();
-  $("#l-mail").value = api.adminEmail;
+  try { $("#l-mail").value = localStorage.getItem("carnets.ultimo") || api.adminEmail; } catch (e) { $("#l-mail").value = api.adminEmail; }
   if (!api.configured) gate("config");
   else if (!api.session()) gate("login");
   else enter();
