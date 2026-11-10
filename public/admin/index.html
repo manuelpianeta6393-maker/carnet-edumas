@@ -47,6 +47,9 @@ h2{font-family:var(--display);font-weight:800;font-size:1rem;margin:0}
 .btn:disabled{opacity:.55;cursor:default}
 .gate{max-width:460px;margin:24px auto;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow)}
 .gate p{margin:0;color:var(--muted)}
+.pie{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));font-size:.78rem;font-weight:600;color:var(--muted);text-align:center}
+.pie a{color:inherit}
+#mig{margin-top:18px}
 .gate ol{margin:0;padding-left:20px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
 .code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--sunken);border-radius:10px;padding:10px 12px;overflow-wrap:anywhere;user-select:all;color:var(--ink)}
 .err{color:var(--bad);font-weight:600;font-size:.9rem}
@@ -98,7 +101,9 @@ legend{font-family:var(--display);font-weight:800;font-size:1rem;padding:0;margi
 .photo-box img{width:100%;height:100%;object-fit:cover}
 .photo-box.busy{opacity:.55}
 .chk{display:flex;align-items:center;gap:8px;font-size:.9rem;font-weight:600;cursor:pointer;min-height:32px}
-.chk input{width:20px;height:20px;accent-color:#0C3472;margin:0}
+.chk input{width:20px;height:20px;accent-color:#0C3472;margin:0;flex:none}
+.chk-top{align-items:flex-start;font-weight:500;line-height:1.4}
+.chk-top input{margin-top:2px}
 .fnota{font-size:.82rem;color:var(--muted)}
 .fnota[data-k="ok"]{color:var(--ok)}
 .fnota[data-k="bad"]{color:var(--bad)}
@@ -175,6 +180,16 @@ legend{font-family:var(--display);font-weight:800;font-size:1rem;padding:0;margi
     <button class="btn ghost" type="button" id="l-reset">Olvidé mi contraseña</button>
   </form>
 
+  <section class="gate" id="g-verify" hidden>
+    <h1>Verifica tu correo</h1>
+    <p>Por seguridad, antes de administrar los carnets debes confirmar que este correo es tuyo. Te enviaremos un enlace a <b id="v-mail"></b>.</p>
+    <div class="err" id="v-err" hidden></div>
+    <div class="info" id="v-info" hidden></div>
+    <button class="btn pri" type="button" id="v-send">Enviar enlace de verificación</button>
+    <button class="btn" type="button" id="v-done">Ya lo verifiqué</button>
+    <button class="btn ghost" type="button" id="v-out">Salir</button>
+  </section>
+
   <section class="gate" id="g-error" hidden>
     <h1>No se pudo cargar</h1>
     <p id="g-error-t"></p>
@@ -249,6 +264,13 @@ legend{font-family:var(--display);font-weight:800;font-size:1rem;padding:0;margi
             <div class="fld"><label for="f-inicio">Fecha de inicio</label><input id="f-inicio" type="date"></div>
             <div class="fld" data-f="fechaFin"><label for="f-fin" id="f-fin-l">Válido hasta *</label><input id="f-fin" type="date"><span class="hint" id="f-fin-h">Después de esta fecha el carnet aparece como vencido.</span></div>
             <div class="fld" data-f="codigo"><label for="f-codigo">Código del carnet</label><input id="f-codigo" autocomplete="off"><span class="hint">Se asigna solo; puedes cambiarlo.</span></div>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Autorización de datos personales</legend>
+          <div class="fld" data-f="autorizacion">
+            <label class="chk chk-top"><input type="checkbox" id="f-autoriza"> El titular autorizó por escrito el tratamiento de sus datos personales, incluidos la foto y el RH (datos sensibles, de entrega facultativa), según el <a href="/privacidad/" target="_blank" rel="noopener">aviso de privacidad</a>.</label>
+            <span class="hint" id="f-autoriza-h">Obligatorio. Guarda el formato firmado en el archivo de la entidad.</span>
           </div>
         </fieldset>
         <div class="bar">
@@ -348,9 +370,17 @@ legend{font-family:var(--display);font-weight:800;font-size:1rem;padding:0;margi
         </fieldset>
         <div class="bar"><button class="btn pri" type="submit" id="cfg-save">Guardar datos de la entidad</button></div>
       </form>
+      <form id="mig" novalidate>
+        <fieldset>
+          <legend>Protección de datos</legend>
+          <p class="sub">Vuelve a publicar todos los carnets sin el número de documento completo en la copia pública. Úsalo una vez después de actualizar la plataforma.</p>
+          <div class="bar"><button class="btn" type="submit" id="mig-run">Actualizar carnets publicados</button></div>
+        </fieldset>
+      </form>
     </section>
   </div>
 </main>
+<footer class="pie"><a href="/privacidad/" target="_blank" rel="noopener">Aviso de privacidad</a><span>Desarrollado por el Ing. Manuel Pianeta</span></footer>
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script src="/assets/config.js"></script>

@@ -4,6 +4,7 @@
   const m = /^\/c\/([A-Za-z0-9]{16,64})(\/|$)/.exec(location.pathname);
   const token = m ? m[1] : "";
   const LS = "carnet." + token;
+  const MAX_OFF = 72 * 3600 * 1000;
   let installEvt = null, current = null, front = null, paintId = 0;
 
   function view(v) { ["load", "gate", "card", "bad"].forEach(n => { $("#v-" + n).hidden = n !== v; }); }
@@ -17,7 +18,9 @@
   function readCache() {
     try {
       const c = JSON.parse(localStorage.getItem(LS) || "null");
-      return c && c.id && c.data ? c : null;
+      if (!(c && c.id && c.data)) return null;
+      if (!c.doc && c.data.numDoc) c.doc = c.data.numDoc;
+      return c;
     } catch (e) { return null; }
   }
 
@@ -26,6 +29,13 @@
 
   function standalone() {
     return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true;
+  }
+
+  function ahora(c) { return Math.max(Date.now(), (c && c.srv) || 0); }
+
+  function viejo(c) {
+    const base = (c && (c.srv || c.at)) || 0;
+    return ahora(c) - base > MAX_OFF;
   }
 
   function fmtWhen(ts) {
@@ -38,7 +48,7 @@
     const id = ++paintId;
     current = c;
     const d = c.data, cfg = Object.assign({}, C.CFG0, c.cfg || {});
-    const e = C.estado(d);
+    const e = C.estado(d, ahora(c));
     const o = { qr: location.origin + "/v/" + d.vtoken, stamp: e.stamp };
     const r = await Promise.all([C.front(d, cfg, o), C.back(d, cfg, o)]);
     if (id !== paintId) return;
@@ -55,21 +65,34 @@
     installUi();
   }
 
+  function caducado() {
+    bad("Conéctate a internet", "Por seguridad, tu carnet debe validarse en línea al menos cada 3 días. Abre la app con conexión a internet.");
+  }
+
+  async function bajar(id, doc) {
+    const r = await api.getMany(["carnets/" + id, "ajustes/entidad"]);
+    const d = r.docs["carnets/" + id];
+    if (!d) return null;
+    const cfg = r.docs["ajustes/entidad"] || null;
+    if (cfg) delete cfg.id;
+    delete d.id;
+    if (!d.numDoc) d.numDoc = doc;
+    return { id, data: d, cfg, at: Date.now(), srv: r.time || 0, doc };
+  }
+
   async function refresh(c) {
     try {
-      const r = await Promise.all([api.get("carnets/" + c.id), api.get("ajustes/entidad").catch(() => null)]);
-      if (!r[0]) {
+      const n = await bajar(c.id, c.doc);
+      if (!n) {
         clearCache();
         bad("Este carnet ya no es válido", "Pide un enlace nuevo en la oficina de EDUMAS.");
         return;
       }
-      const cfg = r[1] || c.cfg || null;
-      if (cfg) delete cfg.id;
-      delete r[0].id;
-      const n = { id: c.id, data: r[0], cfg, at: Date.now() };
+      if (!n.cfg) n.cfg = c.cfg || null;
       writeCache(n);
       await paint(n, false);
     } catch (e) {
+      if (viejo(c)) { current = null; caducado(); return; }
       if (current) $("#meta").textContent = "Sin conexión · Verificado el " + fmtWhen(current.at);
     }
   }
@@ -87,15 +110,11 @@
     b.disabled = true;
     try {
       const id = await api.carnetId(token, doc);
-      const d = await api.get("carnets/" + id);
-      if (!d) {
+      const c = await bajar(id, doc);
+      if (!c) {
         er.textContent = "El número no coincide con este carnet. Revísalo e intenta de nuevo.";
         er.hidden = false;
       } else {
-        const cfg = await api.get("ajustes/entidad").catch(() => null);
-        if (cfg) delete cfg.id;
-        delete d.id;
-        const c = { id, data: d, cfg, at: Date.now() };
         writeCache(c);
         view("load");
         await paint(c, false);
@@ -171,7 +190,8 @@
     document.addEventListener("visibilitychange", () => { if (!document.hidden && current) refresh(current); });
     if (!api.configured) { bad("App sin configurar", "Falta conectar la base de datos. Avisa al administrador."); return; }
     const c = readCache();
-    if (c) paint(c, !navigator.onLine).then(() => refresh(c));
+    if (c && viejo(c)) { view("load"); refresh(c); }
+    else if (c) paint(c, !navigator.onLine).then(() => refresh(c));
     else view("gate");
   }
 

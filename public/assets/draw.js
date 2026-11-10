@@ -52,8 +52,8 @@
     return ready;
   }
 
-  function todayISO() {
-    const d = new Date();
+  function todayISO(ms) {
+    const d = new Date(ms || Date.now());
     return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   }
 
@@ -93,10 +93,10 @@
 
   function tipoLabel(t) { return t === "planta" ? "Funcionario de planta" : t === "contratista" ? "Contratista" : "Practicante"; }
 
-  function estado(p) {
+  function estado(p, ms) {
     if (p.activo === false) return { k: "off", t: "Inactivo", stamp: "INACTIVO" };
     if (!p.fechaFin) return { k: "ok", t: "Vigente", stamp: "" };
-    const t = todayISO();
+    const t = todayISO(ms);
     if (p.fechaFin < t) return { k: "bad", t: "Vencido", stamp: "VENCIDO" };
     const d = Math.round((new Date(p.fechaFin + "T00:00:00") - new Date(t + "T00:00:00")) / 864e5);
     if (d <= 30) return { k: "warn", t: d === 0 ? "Vence hoy" : "Vence en " + d + " d", stamp: "" };

@@ -3,7 +3,16 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function esAdmin() {
       return request.auth != null
+        && request.auth.token.email_verified == true
         && request.auth.token.email in ['comunicaciones@edumas.gov.co', 'prensa@edumas.gov.co'];
+    }
+
+    function texto(d, k, max) {
+      return !(k in d) || (d[k] is string && d[k].size() <= max);
+    }
+
+    function numero(d, k, min, max) {
+      return !(k in d) || ((d[k] is int || d[k] is float) && d[k] >= min && d[k] <= max);
     }
 
     match /funcionarios/{id} {
@@ -24,14 +33,30 @@ service cloud.firestore {
       allow read, delete: if esAdmin();
       allow update: if false;
       allow create: if request.resource.data.keys().hasOnly(['v', 'nombre', 'tipo', 'cargo', 'resultado', 'fecha', 'lat', 'lng', 'precision', 'lugar', 'ubicacion', 'dispositivo'])
+        && request.resource.data.keys().hasAll(['v', 'nombre', 'resultado', 'fecha', 'ubicacion'])
         && request.resource.data.v is string
+        && request.resource.data.v.size() <= 64
         && exists(/databases/$(database)/documents/verificacion/$(request.resource.data.v))
         && request.resource.data.nombre == get(/databases/$(database)/documents/verificacion/$(request.resource.data.v)).data.nombre
         && request.resource.data.fecha == request.time
         && request.resource.data.resultado in ['activo', 'vencido', 'inactivo']
         && request.resource.data.ubicacion in ['si', 'denegada', 'no_disponible']
-        && (!('lugar' in request.resource.data) || (request.resource.data.lugar is string && request.resource.data.lugar.size() <= 200))
-        && (!('dispositivo' in request.resource.data) || (request.resource.data.dispositivo is string && request.resource.data.dispositivo.size() <= 60));
+        && (!('tipo' in request.resource.data) || request.resource.data.tipo in ['practicante', 'contratista', 'planta', ''])
+        && texto(request.resource.data, 'cargo', 120)
+        && texto(request.resource.data, 'lugar', 200)
+        && texto(request.resource.data, 'dispositivo', 20)
+        && numero(request.resource.data, 'lat', -90, 90)
+        && numero(request.resource.data, 'lng', -180, 180)
+        && numero(request.resource.data, 'precision', 0, 100000)
+        && (request.resource.data.ubicacion == 'si') == ('lat' in request.resource.data && 'lng' in request.resource.data);
+    }
+
+    match /bitacora/{id} {
+      allow read: if esAdmin();
+      allow create: if esAdmin()
+        && request.resource.data.fecha == request.time
+        && request.resource.data.usuario == request.auth.token.email;
+      allow update, delete: if false;
     }
 
     match /ajustes/{id} {

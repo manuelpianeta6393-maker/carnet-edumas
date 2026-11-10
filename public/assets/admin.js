@@ -4,7 +4,7 @@
   const $$ = s => Array.from(document.querySelectorAll(s));
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const LIST = ["tipo", "nombres", "apellidos", "nombreCarnet", "tipoDoc", "numDoc", "cargo", "dependencia", "fechaInicio", "fechaFin", "codigo", "activo", "thumb", "token", "vtoken", "carnetId"];
-  const GATES = ["load", "config", "login", "error"];
+  const GATES = ["load", "config", "login", "verify", "error"];
   const S = { people: [], cfg: Object.assign({}, C.CFG0), view: "lista", filter: "todos", q: "", sel: null, editId: null, foto: "", thumb: "", cards: null, token: 0, regs: null, regsAt: 0, fotoBase: null, fondoJob: 0 };
   let confirmFn = null, toastT = 0;
 
@@ -91,7 +91,7 @@
 
   function pubCarnet(f) {
     return {
-      nombreCarnet: C.cardName(f), tipo: f.tipo, cargo: f.cargo || "", tipoDoc: f.tipoDoc || "", numDoc: f.numDoc, rh: f.rh || "", foto: f.foto || "",
+      nombreCarnet: C.cardName(f), tipo: f.tipo, cargo: f.cargo || "", tipoDoc: f.tipoDoc || "", rh: f.rh || "", foto: f.foto || "",
       fechaInicio: f.fechaInicio || "", fechaFin: f.fechaFin || "", activo: f.activo !== false, vtoken: f.vtoken, codigo: f.codigo || "",
       actualizado: f.actualizado || ""
     };
@@ -139,7 +139,7 @@
       { set: "verificacion/" + vtoken, data: pubVerif(full) }
     ];
     if (prev && prev.carnetId && prev.carnetId !== cid) ops.push({ del: "carnets/" + prev.carnetId });
-    await api.commit(ops);
+    await api.commit(ops, { accion: prev ? "editar" : "crear", funcionario: id, nombre: C.fullName(full) });
     const rec = Object.assign({ id, full: true }, full);
     putLocal(rec);
     return rec;
@@ -151,6 +151,13 @@
       const s = api.session();
       if (!api.isAdmin(s.email)) {
         toLogin("Esta cuenta no tiene permiso para administrar.");
+        return;
+      }
+      if (!s.verificado) {
+        $("#v-mail").textContent = s.email || "";
+        msg("#v-err", "");
+        msg("#v-info", "");
+        gate("verify");
         return;
       }
       const r = await Promise.all([api.get("ajustes/entidad", true), api.list("funcionarios", LIST)]);
@@ -382,6 +389,7 @@
     S.fondoJob++;
     fondoNota("");
     $("#f-fondo").checked = !(v.foto);
+    $("#f-autoriza").checked = !!v.autorizacion;
     setFoto(v.foto || "", v.thumb || "");
     setTipoFields();
     show("form");
@@ -398,6 +406,8 @@
       fechaInicio: $("#f-inicio").value, fechaFin: $("#f-fin").value,
       codigo: g("f-codigo") || nextCode(tipo), foto: S.foto || "", thumb: S.thumb || ""
     };
+    const prevA = S.editId ? (S.people.find(p => p.id === S.editId) || {}).autorizacion : "";
+    d.autorizacion = $("#f-autoriza").checked ? prevA || new Date().toISOString() : "";
     if (tipo === "practicante") { d.institucion = g("f-institucion"); d.programa = g("f-programa"); }
     else { d.contrato = g("f-contrato"); d.objeto = g("f-objeto"); }
     return d;
@@ -414,6 +424,7 @@
     if (d.numDoc && S.people.some(p => p.id !== S.editId && String(p.numDoc) === d.numDoc && p.tipoDoc === d.tipoDoc)) { fieldErr("numDoc", "Ya hay un funcionario con este documento."); ok = false; }
     if (d.fechaInicio && d.fechaFin && d.fechaFin < d.fechaInicio) { fieldErr("fechaFin", "Debe ser posterior a la fecha de inicio."); ok = false; }
     if (d.codigo && S.people.some(p => p.id !== S.editId && p.codigo === d.codigo)) { fieldErr("codigo", "Este código ya está en uso."); ok = false; }
+    if (!d.autorizacion) { fieldErr("autorizacion", "Confirma que el titular autorizó el tratamiento de sus datos."); ok = false; }
     if (!ok) {
       const f = document.querySelector(".fld.bad input,.fld.bad select");
       if (f) f.focus();
@@ -550,7 +561,7 @@
     const b = $("#cfg-save");
     b.disabled = true;
     try {
-      await api.commit([{ set: "ajustes/entidad", data: d }]);
+      await api.commit([{ set: "ajustes/entidad", data: d }], { accion: "ajustes" });
       S.cfg = Object.assign({}, C.CFG0, d);
       renderBrand();
       toast("Datos de la entidad guardados");
@@ -677,7 +688,8 @@
   }
 
   function csvCell(v) {
-    const s = String(v == null ? "" : v);
+    let s = String(v == null ? "" : v);
+    if (typeof v === "string" && /^[=+\-@\t\r]/.test(s)) s = "'" + s;
     return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
   }
 
@@ -699,7 +711,8 @@
     const box = $("#det-hist"), p = S.people.find(x => x.id === S.sel);
     if (!box || !p) return;
     if (!S.regs) { box.innerHTML = "<p>Cargando…</p>"; return; }
-    const mine = S.regs.filter(r => r.v === p.vtoken);
+    const vs = [p.vtoken].concat(p.vtokensPrev || []);
+    const mine = S.regs.filter(r => vs.indexOf(r.v) >= 0);
     if (!mine.length) { box.innerHTML = "<p>Todavía no se ha presentado con su carnet.</p>"; return; }
     box.innerHTML = "<p>" + mine.length + (mine.length === 1 ? " presentación registrada." : " presentaciones registradas.") + "</p>" +
       mine.slice(0, 5).map(r => "<div><b>" + esc(fmtFecha(r.fecha)) + "</b> · " + (r.ubicacion === "si"
@@ -778,7 +791,7 @@
       { set: "funcionarios/" + p.id, data: full },
       { set: "carnets/" + full.carnetId, data: pubCarnet(full) },
       { set: "verificacion/" + full.vtoken, data: pubVerif(full) }
-    ]);
+    ], { accion: full.activo ? "reactivar" : "desactivar", funcionario: p.id, nombre: C.fullName(full) });
     putLocal(Object.assign({ id: p.id, full: true }, full));
     toast(full.activo ? "Carnet reactivado" : "Carnet desactivado");
     renderAll();
@@ -789,17 +802,22 @@
     const p = await ensureFull(S.sel);
     if (!p) return;
     const full = strip(p);
-    const old = full.carnetId;
+    const old = full.carnetId, oldV = full.vtoken;
     full.token = api.rnd(24);
+    full.vtoken = api.rnd(16);
+    full.vtokensPrev = (full.vtokensPrev || []).concat(oldV ? [oldV] : []).slice(-20);
     full.carnetId = await api.carnetId(full.token, full.numDoc);
     full.actualizado = new Date().toISOString();
-    await api.commit([
+    const ops = [
       { set: "funcionarios/" + p.id, data: full },
       { set: "carnets/" + full.carnetId, data: pubCarnet(full) },
+      { set: "verificacion/" + full.vtoken, data: pubVerif(full) },
       { del: "carnets/" + old }
-    ]);
+    ];
+    if (oldV) ops.push({ del: "verificacion/" + oldV });
+    await api.commit(ops, { accion: "nuevo_enlace_qr", funcionario: p.id, nombre: C.fullName(full) });
     putLocal(Object.assign({ id: p.id, full: true }, full));
-    toast("Enlace y QR nuevos generados. Los anteriores ya no sirven.");
+    toast("Enlace, QR de instalación y QR del carnet nuevos. Los anteriores ya no sirven.");
     await paint(p.id);
   }
 
@@ -862,10 +880,42 @@
     c.toBlob(b => saveBlob(b, "qr-carnet-" + slug(C.cardName(p)) + ".png"), "image/png");
   }
 
+  async function migrar(ev) {
+    ev.preventDefault();
+    const b = $("#mig-run");
+    b.disabled = true;
+    let n = 0;
+    try {
+      for (const q of S.people.slice()) {
+        const p = await ensureFull(q.id);
+        if (!p || !p.carnetId || !p.vtoken) continue;
+        const full = strip(p);
+        await api.commit([
+          { set: "carnets/" + full.carnetId, data: pubCarnet(full) },
+          { set: "verificacion/" + full.vtoken, data: pubVerif(full) }
+        ]);
+        n++;
+        b.textContent = "Actualizando… " + n + " de " + S.people.length;
+      }
+      await api.commit([], { accion: "republicar_carnets", total: n });
+      toast(n + " carnets actualizados");
+    } catch (e) { handle(e); }
+    b.textContent = "Actualizar carnets publicados";
+    b.disabled = false;
+  }
+
   async function removeSel() {
     const p = await ensureFull(S.sel);
     if (!p) return;
-    await api.commit([{ del: "funcionarios/" + p.id }, { del: "carnets/" + p.carnetId }, { del: "verificacion/" + p.vtoken }]);
+    const vs = [p.vtoken].concat(p.vtokensPrev || []).filter(Boolean);
+    let regs = [];
+    for (const v of vs) regs = regs.concat(await api.queryEq("registros", "v", v, 500));
+    const ops = [{ del: "funcionarios/" + p.id }, { del: "carnets/" + p.carnetId }, { del: "verificacion/" + p.vtoken }].concat(regs.map(r => ({ del: "registros/" + r.id })));
+    for (let i = 0; i < ops.length; i += 400) {
+      const last = i + 400 >= ops.length;
+      await api.commit(ops.slice(i, i + 400), last ? { accion: "eliminar", funcionario: p.id, nombre: C.fullName(p), registrosBorrados: regs.length } : undefined);
+    }
+    if (S.regs) S.regs = S.regs.filter(r => vs.indexOf(r.v) < 0);
     S.people = S.people.filter(x => x.id !== p.id);
     toast("Funcionario eliminado");
     renderAll();
@@ -894,6 +944,22 @@
       if (d) { download(d.dataset.dl); return; }
     });
     $("#g-login").addEventListener("submit", submitLogin);
+    $("#v-send").addEventListener("click", async () => {
+      msg("#v-err", "");
+      try {
+        await api.sendVerify();
+        msg("#v-info", "Te enviamos el enlace. Ábrelo desde tu correo y luego toca «Ya lo verifiqué».");
+      } catch (e) { msg("#v-err", e && e.offline ? "Sin conexión a internet." : /TOO_MANY/.test((e && e.reason) || "") ? "Demasiados intentos. Espera unos minutos." : "No se pudo enviar el correo. Intenta de nuevo."); }
+    });
+    $("#v-done").addEventListener("click", async () => {
+      msg("#v-err", "");
+      try {
+        if (await api.checkVerified()) enter();
+        else msg("#v-err", "Todavía no aparece verificado. Abre el enlace del correo y vuelve a intentarlo.");
+      } catch (e) { if (e && e.http === 401) toLogin("Tu sesión venció. Entra de nuevo."); else msg("#v-err", "No se pudo comprobar. Intenta de nuevo."); }
+    });
+    $("#v-out").addEventListener("click", () => toLogin(""));
+    $("#mig").addEventListener("submit", migrar);
     $("#salir").addEventListener("click", () => { S.people = []; toLogin(""); });
     $("#l-reset").addEventListener("click", async () => {
       msg("#l-err", "");
@@ -948,11 +1014,11 @@
       else ask("¿Desactivar el carnet de " + C.fullName(p) + "? En su celular y al escanear el QR aparecerá como inactivo.", toggleActivo);
     });
     $("#det-link").addEventListener("click", () => {
-      ask("¿Generar enlace y QR nuevos? Los anteriores dejan de funcionar y el funcionario debe usar los nuevos.", newLink);
+      ask("¿Generar enlace y QR nuevos? El enlace, el QR de instalación y el QR del carnet anteriores dejan de funcionar; el funcionario debe abrir el enlace nuevo.", newLink);
     });
     $("#det-del").addEventListener("click", () => {
       const p = S.people.find(x => x.id === S.sel);
-      ask("¿Eliminar a " + (p ? C.fullName(p) : "este funcionario") + "? Su carnet deja de funcionar y sus datos no se pueden recuperar.", removeSel);
+      ask("¿Eliminar a " + (p ? C.fullName(p) : "este funcionario") + "? Su carnet deja de funcionar y se borran sus datos y sus registros de presentación. No se puede deshacer.", removeSel);
     });
     $("#confirm-no").addEventListener("click", () => { $("#confirm").hidden = true; confirmFn = null; });
     $("#confirm-si").addEventListener("click", async () => {

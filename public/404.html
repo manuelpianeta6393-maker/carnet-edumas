@@ -16,6 +16,8 @@ h1{font-family:Montserrat,Arial,sans-serif;font-weight:800;font-size:1.5rem;marg
 p{margin:0;color:#B9CBE8;max-width:38ch}
 a{color:#FFFFFF;font-weight:600}
 a:focus-visible{outline:3px solid #C6EBFD;outline-offset:3px}
+.pie{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));font-size:.78rem;font-weight:600;color:#8A9BB8;text-align:center}
+.pie a{color:inherit}
 </style>
 </head>
 <body>
@@ -25,7 +27,6 @@ a:focus-visible{outline:3px solid #C6EBFD;outline-offset:3px}
   <p>Revisa que el enlace esté completo. Para ver tu carnet abre el enlace personal que te envió EDUMAS.</p>
   <p><a href="/admin/">Entrar al panel de administración</a></p>
 </main>
-<script src="/assets/config.js"></script>
-<script src="/assets/api.js"></script>
+<footer class="pie"><a href="/privacidad/">Aviso de privacidad</a><span>Desarrollado por el Ing. Manuel Pianeta</span></footer>
 </body>
 </html>

@@ -1,0 +1,20 @@
+{
+  "name": "carnet-edumas",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Carnet digital del EDUMAS",
+  "scripts": {
+    "vendor": "node scripts/vendor.js",
+    "deploy": "npm run vendor && firebase deploy",
+    "test:reglas": "firebase emulators:exec --only firestore --project demo-carnet-edumas \"node tests/reglas.test.js\""
+  },
+  "dependencies": {
+    "@mediapipe/selfie_segmentation": "0.1.1675465747",
+    "jspdf": "4.2.1",
+    "qrcode-generator": "2.0.4"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "firebase": "^13.0.0"
+  }
+}

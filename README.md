@@ -1,6 +1,6 @@
 # Carnet virtual EDUMAS
 
-Plataforma de carnetización digital del Establecimiento de Desarrollo Urbano y Medio Ambiente de Soledad (EDUMAS). Permite al administrador registrar funcionarios (practicantes, contratistas y funcionarios de planta), entregar a cada uno un carnet instalable en el celular (PWA, funciona sin internet), verificar la autenticidad del carnet por código QR y registrar cada presentación con fecha, hora y ubicación.
+Plataforma de carnetización digital del Establecimiento de Desarrollo Urbano y Medio Ambiente de Soledad (EDUMAS). Permite al administrador registrar funcionarios (practicantes, contratistas y funcionarios de planta), entregar a cada uno un carnet instalable en el celular (PWA, funciona sin internet), verificar la autenticidad del carnet por código QR y registrar cada presentación con fecha, hora y, si quien escanea lo autoriza, la ubicación.
 
 Desarrollado por el Ing. Manuel Pianeta.
 
@@ -13,7 +13,6 @@ Desarrollado por el Ing. Manuel Pianeta.
 | Autenticación | Firebase Authentication (correo y contraseña), API REST de Identity Toolkit |
 | App del funcionario | PWA con service worker y caché local |
 | Dibujo del carnet | Canvas, plantillas JPG, QR con `qrcode-generator`, PDF con `jsPDF` |
-| Geocodificación | Nominatim (OpenStreetMap) |
 | Fondo blanco de la foto | MediaPipe Selfie Segmentation (Apache 2.0), ejecutado en el navegador del administrador |
 
 No hay backend propio ni Cloud Functions. Toda la seguridad de datos depende de `firestore.rules`.
@@ -32,22 +31,27 @@ public/
   assets/carnet.js     Lógica de la app del funcionario
   assets/verificar.js  Verificación y registro de presentaciones
   assets/draw.js       Dibujo del carnet
-  assets/config.js     Configuración web de Firebase
+  assets/config.js     Configuración web de Firebase y correos administradores
+  privacidad/          Aviso de privacidad
   sw.js                Service worker
-  .htaccess            Equivalente de las rutas para hosting Apache
+  .htaccess            Equivalente de rutas y cabeceras para Apache
+scripts/vendor.js      Copia las librerías de node_modules a public/assets
+tests/reglas.test.js   Pruebas de firestore.rules con el emulador
+package.json           Dependencias con versión fija (jsPDF, qrcode-generator, MediaPipe)
 ```
 
 ## Modelo de datos
 
 | Colección | Contenido | Acceso |
 |---|---|---|
-| `funcionarios/{id}` | Ficha completa del funcionario | Solo administrador |
-| `carnets/{sha256(token:documento)}` | Datos para mostrar el carnet | Lectura pública por ID exacto; escritura solo administrador |
+| `funcionarios/{id}` | Ficha completa del funcionario, con fecha de autorización de datos | Solo administrador |
+| `carnets/{sha256(token:documento)}` | Datos para mostrar el carnet, sin el número de documento (la app lo toma de lo que escribe el titular) | Lectura pública por ID exacto; escritura solo administrador |
 | `verificacion/{vtoken}` | Datos públicos de verificación | Lectura pública por ID exacto; escritura solo administrador |
 | `registros/{id}` | Presentaciones (QR escaneado, hora, ubicación) | Creación pública validada; lectura y borrado solo administrador; no se puede editar |
+| `bitacora/{id}` | Acciones de los administradores: quién, qué y cuándo (hora del servidor) | Lectura y creación solo administrador; no se edita ni se borra |
 | `ajustes/entidad` | Datos de la entidad | Lectura pública; escritura solo administrador |
 
-Los administradores se identifican por el correo del token de Firebase Auth (`request.auth.token.email`), contra la lista de `firestore.rules` y `config.js`.
+Los administradores se identifican por el correo del token de Firebase Auth (`request.auth.token.email`) con `email_verified == true`, contra la lista de `firestore.rules` y `config.js`.
 
 ## Flujos
 
@@ -57,29 +61,40 @@ Los administradores se identifican por el correo del token de Firebase Auth (`re
 
 ## Decisiones de seguridad
 
+- Administrador = correo de la lista y correo verificado. El panel pide verificar el correo antes de entrar.
 - Lista de colecciones con `list` denegado para usuarios públicos: solo se puede leer un documento conociendo su ID.
-- Tokens de 20+ caracteres generados con `crypto.getRandomValues`.
-- `registros`: la regla exige que `v` exista en `verificacion`, que el nombre coincida, que `fecha == request.time`, valores permitidos para `resultado` y `ubicacion`, y longitudes máximas.
-- En la verificación pública el documento de identidad se muestra enmascarado.
-- Rutas `/c/**`, `/v/**` y `/admin/**` con `noindex` y `Referrer-Policy: no-referrer`.
+- Tokens de 16 a 24 caracteres generados con `crypto.getRandomValues`.
+- `registros`: la regla exige campos obligatorios, que `v` exista en `verificacion`, que el nombre coincida, `fecha == request.time`, valores permitidos y rangos de latitud, longitud y precisión. No se pueden editar.
+- La copia pública del carnet no guarda el número de documento; la verificación lo muestra enmascarado.
+- "Generar enlace y QR nuevos" rota el enlace personal y el QR del carnet; los anteriores dejan de funcionar.
+- Eliminar un funcionario borra también sus registros de presentación.
+- Sesión del administrador en `sessionStorage`, con un máximo de 8 horas.
+- La app sin conexión deja de mostrar el carnet si no se valida en línea en 72 horas; la vigencia usa la hora del servidor de la última validación.
+- Sin servicios externos de geocodificación: solo se guardan las coordenadas, con aviso al usuario.
+- Cabeceras: Content-Security-Policy sin scripts en línea, `frame-ancestors 'none'`, `X-Frame-Options`, `nosniff`, `Referrer-Policy: no-referrer`, `Permissions-Policy` y HSTS.
+- Exportación CSV con neutralización de fórmulas.
+- Bitácora de acciones de administración.
 
 ## Limitaciones conocidas
 
-- `config.js` contiene la API key web de Firebase. Es pública por diseño en Firebase; la protección de datos está en las reglas. Se recomienda restringir la key por dominio en Google Cloud Console.
-- Quien tenga un `vtoken` válido puede crear registros falsos de presentación para ese funcionario.
-- La ubicación del registro es la del teléfono que escanea y depende del permiso del usuario.
-- Los datos del carnet quedan en `localStorage` del teléfono para uso sin conexión.
+- `config.js` contiene la API key web de Firebase (pública por diseño). Debe restringirse por dominio en Google Cloud Console.
+- Quien tenga un QR de carnet puede crear registros de presentación de esa persona; no hay límite de frecuencia (requiere Cloud Functions y App Check, plan Blaze).
+- No hay límite de intentos en la activación del carnet del lado del servidor (requiere Cloud Functions).
+- No se puede revocar el token de sesión desde el cliente; la sesión dura como máximo 8 horas.
+- El inicio de sesión del administrador no tiene segundo factor (requiere Identity Platform).
 - La foto del funcionario se guarda como data URL dentro de los documentos.
-- El inicio de sesión del administrador no tiene segundo factor.
-- La marca "Desarrollado por" está protegida por ofuscación en `api.js`; no es una medida criptográfica.
+- Sin respaldos automáticos en el plan Spark.
 
-## Despliegue
+## Desarrollo y despliegue
 
 ```
-npm install -g firebase-tools
-firebase login
+npm install
+npm run vendor
+npm run test:reglas
 firebase deploy
 ```
+
+`npm run test:reglas` necesita Java 11 o superior para el emulador de Firestore.
 
 ## Qué se pide revisar
 

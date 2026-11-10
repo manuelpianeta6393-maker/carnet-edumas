@@ -1,4 +1,4 @@
-const VERSION = "carnet-edumas-v10";
+const VERSION = "carnet-edumas-v11";
 const SHELL = [
   "/carnet/index.html",
   "/carnet/manifest.webmanifest",

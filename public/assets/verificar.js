@@ -26,8 +26,8 @@
     dl.appendChild(d);
   }
 
-  function when() {
-    const d = new Date(), p = n => String(n).padStart(2, "0");
+  function when(ms) {
+    const d = new Date(ms || Date.now()), p = n => String(n).padStart(2, "0");
     return "Consulta realizada el " + p(d.getDate()) + "/" + p(d.getMonth() + 1) + "/" + d.getFullYear() + " a las " + p(d.getHours()) + ":" + p(d.getMinutes());
   }
 
@@ -36,23 +36,24 @@
       state("bad", "Carnet no válido", "Este código no corresponde a ningún carnet.");
       return;
     }
-    let d, cfg;
+    let d, cfg, srv = 0;
     try {
-      const r = await Promise.all([api.get("verificacion/" + m[1]), api.get("ajustes/entidad").catch(() => null)]);
-      d = r[0];
-      cfg = Object.assign({}, C.CFG0, r[1] || {});
+      const r = await api.getMany(["verificacion/" + m[1], "ajustes/entidad"]);
+      d = r.docs["verificacion/" + m[1]];
+      cfg = Object.assign({}, C.CFG0, r.docs["ajustes/entidad"] || {});
+      srv = r.time || 0;
     } catch (e) {
       state("warn", "No se pudo verificar", e && e.offline ? "No hay conexión a internet. Intenta de nuevo." : "Intenta de nuevo en un momento.");
       return;
     }
     const ent = cfg.nombre || "EDUMAS";
     $("#foot-ent").textContent = [ent, cfg.telefono, [cfg.direccion, cfg.ciudad].filter(Boolean).join(", ")].filter(Boolean).join(" · ");
-    $("#foot-when").textContent = when();
+    $("#foot-when").textContent = when(srv);
     if (!d) {
       state("bad", "Carnet no válido", "Este código no está en el registro de funcionarios de " + ent + ".");
       return;
     }
-    const e = C.estado(d), tipo = C.tipoLabel(d.tipo);
+    const e = C.estado(d, srv || Date.now()), tipo = C.tipoLabel(d.tipo);
     if (e.k === "off") state("bad", "Carnet inactivo", "Esta persona ya no figura como funcionario activo de " + ent + ".");
     else if (e.k === "bad") state("bad", "Carnet vencido", "La vigencia terminó el " + C.fmtDate(d.fechaFin) + ".");
     else state("ok", "Funcionario activo", tipo + " vinculado a " + ent + ".");
@@ -92,22 +93,6 @@
     });
   }
 
-  async function direccion(lat, lng) {
-    try {
-      const ctl = new AbortController();
-      const t = setTimeout(() => ctl.abort(), 6000);
-      const r = await fetch("https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&accept-language=es&lat=" + lat + "&lon=" + lng, { signal: ctl.signal });
-      clearTimeout(t);
-      const j = await r.json();
-      const a = j.address || {};
-      const calle = [a.road, a.house_number].filter(Boolean).join(" ");
-      const barrio = a.neighbourhood || a.suburb || a.quarter || a.residential || "";
-      const ciudad = a.city || a.town || a.village || a.municipality || "";
-      const txt = [calle, barrio, ciudad].filter(Boolean).join(", ") || j.display_name || "";
-      return txt.slice(0, 200);
-    } catch (e) { return ""; }
-  }
-
   function dispositivo() {
     const u = navigator.userAgent;
     const so = /iphone|ipad/i.test(u) ? "iPhone" : /android/i.test(u) ? "Android" : /windows/i.test(u) ? "Windows" : /mac os/i.test(u) ? "Mac" : "Otro";
@@ -127,8 +112,6 @@
       data.lat = pos.lat;
       data.lng = pos.lng;
       data.precision = pos.precision;
-      const dir = await direccion(pos.lat, pos.lng);
-      if (dir) data.lugar = dir;
     }
     try {
       await api.addPublic("registros", data, "fecha");

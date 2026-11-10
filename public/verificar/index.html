@@ -32,6 +32,8 @@ dl div{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border
 dl div:last-child{border-bottom:0}
 dt{color:var(--muted);font-size:.9rem}
 dd{margin:0;font-weight:600;text-align:right;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.aviso{margin:0;font-size:.8rem;color:var(--muted);text-align:center}
+.aviso a{color:inherit;font-weight:600}
 .foot{color:var(--muted);font-size:.82rem;text-align:center;display:flex;flex-direction:column;gap:4px}
 </style>
 </head>
@@ -43,7 +45,8 @@ dd{margin:0;font-weight:600;text-align:right;overflow-wrap:anywhere;font-variant
     <div class="who" id="who" hidden><div><h1 id="nombre"></h1><p id="tipo"></p></div></div>
     <dl id="datos" hidden></dl>
   </div>
-  <div class="foot"><span id="foot-ent"></span><span id="foot-when"></span><span id="reg" hidden></span></div>
+  <p class="aviso">Al consultar este carnet, EDUMAS registra la fecha, la hora y, solo si lo autorizas en el aviso del navegador, la ubicación de este dispositivo, para llevar el control de presentaciones de su personal. <a href="/privacidad/" target="_blank" rel="noopener">Aviso de privacidad</a>.</p>
+  <div class="foot"><span id="foot-ent"></span><span id="foot-when"></span><span id="reg" hidden></span><span>Desarrollado por el Ing. Manuel Pianeta</span></div>
 </div>
 <script src="/assets/config.js"></script>
 <script src="/assets/api.js"></script>

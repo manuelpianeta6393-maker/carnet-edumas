@@ -1,42 +1,10 @@
 (function () {
   const C = window.CARNET_CONFIG || {};
-  const _q = [111,87,74,33,53,60,58,48,15,11,21,23,95,246,226,230,187,199,197,144,254,208,162,226,243,151,128,134,154,147,145,36,91,123,120,78,66,90,84];
-  const _S = String.fromCharCode.apply(null, _q.map((c, i) => c ^ ((0x2B + i * 7) & 255)));
-  const _k = (t => { let x = 0x811c9dc5; for (let i = 0; i < t.length; i++) { x ^= t.charCodeAt(i); x = Math.imul(x, 16777619) >>> 0; } return x; })(_S);
-  const _d = a => String.fromCharCode.apply(null, a.map((c, i) => c ^ ((_k >>> ((i % 4) * 8)) & 255)));
-  const FS = (C.firestoreHost || _d([187,36,18,249,160,106,73,166,181,57,20,236,160,36,9,251,182,126,1,230,188,55,10,236,178,32,15,250,253,51,9,228])) + "/v1/";
+  const FS = (C.firestoreHost || "https://firestore.googleapis.com") + "/v1/";
   const ROOT = "projects/" + C.projectId + "/databases/(default)/documents";
-  const AUTH = (C.authHost || _d([187,36,18,249,160,106,73,166,186,52,3,231,167,57,18,240,167,63,9,229,184,57,18,167,180,63,9,238,191,53,7,249,186,35,72,234,188,61])) + "/v1/";
-  const TOK = (C.tokenHost || _d([187,36,18,249,160,106,73,166,160,53,5,252,161,53,18,230,184,53,8,167,180,63,9,238,191,53,7,249,186,35,72,234,188,61])) + "/v1/token";
-  let _h = null, _t = null;
-  const _imp = (el, o) => Object.keys(o).forEach(k => el.style.setProperty(k, o[k], "important"));
-  function _pintar() {
-    if (!document.body) return;
-    if (_h) { try { _h.remove(); } catch (x) {} }
-    _h = document.createElement("div");
-    _h.setAttribute("role", "contentinfo");
-    _imp(_h, { display: "block", position: "relative", visibility: "visible", opacity: "1", "z-index": "2147483647", transform: "none", filter: "none", "clip-path": "none", width: "100%", height: "auto", "min-height": "28px", margin: "0", padding: "10px 16px calc(10px + env(safe-area-inset-bottom,0px))", "box-sizing": "border-box", overflow: "visible", "pointer-events": "auto" });
-    const r = _h.attachShadow({ mode: "closed" });
-    const st = document.createElement("style");
-    st.textContent = ":host{all:initial}p{margin:0;font:600 12px/1.4 system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;text-align:center;color:#7A8BA8;letter-spacing:.02em}";
-    _t = document.createElement("p");
-    _t.textContent = _S;
-    r.appendChild(st);
-    r.appendChild(_t);
-    document.body.appendChild(_h);
-  }
-  function _vivo() {
-    if (!_h || !_t || !_h.isConnected || _h.parentNode !== document.body || document.body.lastElementChild !== _h) return false;
-    if (_t.textContent !== _S || _t.parentNode === null) return false;
-    const cs = getComputedStyle(_h), ct = getComputedStyle(_t);
-    if (cs.display === "none" || cs.visibility !== "visible" || Number(cs.opacity) < 0.9 || ct.visibility !== "visible" || Number(ct.opacity) < 0.9) return false;
-    if (_h.getBoundingClientRect().height < 20 || _t.getBoundingClientRect().width < 60) return false;
-    return true;
-  }
-  function _guardia() { if (!_vivo()) _pintar(); return _vivo(); }
-  _pintar();
-  try { new MutationObserver(() => { if (!_vivo()) _pintar(); }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "class", "hidden"] }); } catch (x) {}
-  setInterval(_guardia, 1500);
+  const AUTH = (C.authHost || "https://identitytoolkit.googleapis.com") + "/v1/";
+  const TOK = (C.tokenHost || "https://securetoken.googleapis.com") + "/v1/token";
+  const MAX_SES = 8 * 3600 * 1000;
   const SK = "carnets.sesion";
   const configured = !!C.apiKey && !!C.projectId && !/PEGA_AQUI/.test(C.apiKey + C.projectId);
   const adminEmail = String(C.adminEmail || "").trim().toLowerCase();
@@ -45,13 +13,22 @@
   let ses = null;
   let refreshing = null;
 
-  try { ses = JSON.parse(localStorage.getItem(SK) || "null"); } catch (e) { ses = null; }
+  try { localStorage.removeItem(SK); } catch (e) {}
+  try { ses = JSON.parse(sessionStorage.getItem(SK) || "null"); } catch (e) { ses = null; }
+  if (ses && !(ses.inicio && Date.now() - ses.inicio < MAX_SES)) ses = null;
 
   function saveSes() {
     try {
-      if (ses) localStorage.setItem(SK, JSON.stringify(ses));
-      else localStorage.removeItem(SK);
+      if (ses) sessionStorage.setItem(SK, JSON.stringify(ses));
+      else sessionStorage.removeItem(SK);
     } catch (e) {}
+  }
+
+  function claims(tok) {
+    try {
+      const b = tok.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+      return JSON.parse(decodeURIComponent(escape(atob(b + "===".slice((b.length + 3) % 4)))));
+    } catch (e) { return {}; }
   }
 
   function enc(v) {
@@ -102,7 +79,6 @@
   }
 
   async function call(method, url, body, headers) {
-    if (!_guardia()) throw new Error("Plataforma alterada");
     let r;
     try {
       r = await fetch(url, { method, headers: headers || {}, body: body === undefined ? undefined : body });
@@ -117,6 +93,11 @@
     return j;
   }
 
+  function vencida() {
+    if (ses && Date.now() - (ses.inicio || 0) >= MAX_SES) { ses = null; saveSes(); }
+    return !ses;
+  }
+
   async function refresh() {
     const j = await call("POST", TOK + "?key=" + encodeURIComponent(C.apiKey),
       "grant_type=refresh_token&refresh_token=" + encodeURIComponent(ses.refreshToken),
@@ -124,16 +105,17 @@
     ses.idToken = j.id_token;
     ses.refreshToken = j.refresh_token;
     ses.exp = Date.now() + Number(j.expires_in) * 1000;
+    ses.verificado = claims(ses.idToken).email_verified === true;
     saveSes();
   }
 
-  async function idToken() {
-    if (!ses) {
+  async function idToken(force) {
+    if (vencida()) {
       const e = new Error("Sin sesión");
       e.http = 401;
       throw e;
     }
-    if (Date.now() < ses.exp - 60000) return ses.idToken;
+    if (!force && Date.now() < ses.exp - 60000) return ses.idToken;
     if (!refreshing) refreshing = refresh().finally(() => { refreshing = null; });
     try { await refreshing; } catch (e) {
       if (!e.offline) { ses = null; saveSes(); e.http = 401; }
@@ -154,12 +136,23 @@
   async function signIn(email, password) {
     const j = await call("POST", AUTH + "accounts:signInWithPassword?key=" + encodeURIComponent(C.apiKey),
       JSON.stringify({ email, password, returnSecureToken: true }), { "Content-Type": "application/json" });
-    ses = { idToken: j.idToken, refreshToken: j.refreshToken, exp: Date.now() + Number(j.expiresIn) * 1000, uid: j.localId, email: j.email };
+    ses = { idToken: j.idToken, refreshToken: j.refreshToken, exp: Date.now() + Number(j.expiresIn) * 1000, uid: j.localId, email: j.email, inicio: Date.now(), verificado: claims(j.idToken).email_verified === true };
     saveSes();
     return ses;
   }
 
   function signOut() { ses = null; saveSes(); }
+
+  async function sendVerify() {
+    const tok = await idToken();
+    return call("POST", AUTH + "accounts:sendOobCode?key=" + encodeURIComponent(C.apiKey),
+      JSON.stringify({ requestType: "VERIFY_EMAIL", idToken: tok }), { "Content-Type": "application/json" });
+  }
+
+  async function checkVerified() {
+    await idToken(true);
+    return !!(ses && ses.verificado);
+  }
 
   async function resetPassword(email) {
     return call("POST", AUTH + "accounts:sendOobCode?key=" + encodeURIComponent(C.apiKey),
@@ -189,11 +182,36 @@
     return out;
   }
 
-  async function commit(ops) {
+  async function commit(ops, log) {
     const writes = ops.map(o => o.del
       ? { delete: ROOT + "/" + o.del }
       : { update: { name: ROOT + "/" + o.set, fields: encFields(o.data) } });
+    if (log) {
+      writes.push({
+        update: { name: ROOT + "/bitacora/" + rnd(20), fields: encFields(Object.assign({ usuario: ses ? ses.email : "" }, log)) },
+        currentDocument: { exists: false },
+        updateTransforms: [{ fieldPath: "fecha", setToServerValue: "REQUEST_TIME" }]
+      });
+    }
     return fs("POST", ROOT + ":commit", { writes }, true);
+  }
+
+  async function getMany(paths, auth) {
+    const j = await fs("POST", ROOT + ":batchGet", { documents: paths.map(p => ROOT + "/" + p) }, auth);
+    const out = {};
+    let readTime = "";
+    (j || []).forEach(x => {
+      if (x.readTime && !readTime) readTime = x.readTime;
+      if (x.found) out[x.found.name.split("/documents/")[1]] = decDoc(x.found);
+      else if (x.missing) out[x.missing.split("/documents/")[1]] = null;
+    });
+    return { docs: out, time: readTime ? Date.parse(readTime) : 0 };
+  }
+
+  async function queryEq(col, field, value, limit) {
+    const body = { structuredQuery: { from: [{ collectionId: col }], where: { fieldFilter: { field: { fieldPath: field }, op: "EQUAL", value: enc(value) } }, limit: limit || 500 } };
+    const j = await fs("POST", ROOT + ":runQuery", body, true);
+    return (j || []).filter(x => x.document).map(x => decDoc(x.document));
   }
 
   async function addPublic(col, data, timeField) {
@@ -233,6 +251,6 @@
   window.Api = {
     configured, adminEmail, adminEmails, isAdmin,
     session: () => ses,
-    signIn, signOut, resetPassword, get, list, commit, addPublic, query, rnd, sha, normDoc, carnetId
+    signIn, signOut, resetPassword, sendVerify, checkVerified, get, getMany, list, commit, addPublic, query, queryEq, rnd, sha, normDoc, carnetId
   };
 })();

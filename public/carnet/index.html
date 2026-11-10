@@ -49,12 +49,16 @@ p{margin:0;color:var(--muted);text-align:center;max-width:36ch}
 .ios b{color:#FFFFFF}
 .ios ol{margin:8px 0 0;padding-left:20px;text-align:left;display:flex;flex-direction:column;gap:6px}
 .meta{font-size:.78rem}
+.legal{font-size:.78rem;max-width:40ch}
+.legal a{color:#FFFFFF}
 .spin{width:38px;height:38px;border-radius:50%;border:4px solid rgba(255,255,255,.2);border-top-color:#FFFFFF}
 @media (prefers-reduced-motion:no-preference){
   .flip-in{transition:transform .55s cubic-bezier(.3,.7,.2,1)}
   .spin{animation:giro .9s linear infinite}
 }
 @keyframes giro{to{transform:rotate(360deg)}}
+.pie{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));font-size:.78rem;font-weight:600;color:#8A9BB8;text-align:center}
+.pie a{color:inherit}
 </style>
 </head>
 <body>
@@ -68,6 +72,7 @@ p{margin:0;color:var(--muted);text-align:center;max-width:36ch}
     <div class="fld"><label for="doc">Número de documento</label><input id="doc" inputmode="numeric" autocomplete="off" enterkeyhint="go"></div>
     <div class="err" id="gate-err" hidden></div>
     <button class="btn" type="submit" id="gate-btn">Activar mi carnet</button>
+    <p class="legal">EDUMAS trata tus datos personales para identificarte como parte de su personal. Consulta el <a href="/privacidad/" target="_blank" rel="noopener">aviso de privacidad</a>.</p>
   </form>
 
   <section class="box" id="v-card" hidden>
@@ -82,6 +87,7 @@ p{margin:0;color:var(--muted);text-align:center;max-width:36ch}
     <div class="ios" id="ios-tip" hidden></div>
     <button class="btn alt" type="button" id="btn-copy" hidden>Copiar enlace</button>
     <p class="meta" id="meta"></p>
+    <p class="legal"><a href="/privacidad/" target="_blank" rel="noopener">Aviso de privacidad</a></p>
   </section>
 
   <section class="box" id="v-bad" hidden>
@@ -90,6 +96,7 @@ p{margin:0;color:var(--muted);text-align:center;max-width:36ch}
     <p id="bad-p">Abre el enlace personal que te envió EDUMAS.</p>
   </section>
 </main>
+<footer class="pie"><span>Desarrollado por el Ing. Manuel Pianeta</span></footer>
 <script src="/assets/config.js"></script>
 <script src="/assets/api.js"></script>
 <script src="/assets/qrcode.js"></script>
