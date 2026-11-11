@@ -32,7 +32,7 @@ public/
   assets/verificar.js  Verificación y registro de presentaciones
   assets/draw.js       Dibujo del carnet
   assets/config.js     Configuración web de Firebase y correos administradores
-  privacidad/          Aviso de privacidad
+  privacidad/          Avisos de privacidad (personal y verificación)
   sw.js                Service worker
   .htaccess            Equivalente de rutas y cabeceras para Apache
 scripts/vendor.js      Copia las librerías de node_modules a public/assets
